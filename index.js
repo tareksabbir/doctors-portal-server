@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
@@ -17,6 +18,7 @@ async function run() {
         await client.connect();
         const serviceCollection = client.db('doctors_portal').collection('services');
         const bookingCollection = client.db('doctors_portal').collection('bookings');
+        const usersCollection = client.db('doctors_portal').collection('users');
 
 
         app.get('/service', async (req, res) => {
@@ -25,6 +27,21 @@ async function run() {
             const services = await cursor.toArray();
             res.send(services);
         })
+
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({ result, token });
+
+        })
+
         // this is note the best way but for study purpose i just used 
         app.get('/available', async (req, res) => {
             const date = req.query.date;
@@ -66,6 +83,7 @@ async function run() {
         * app.get('/booking/:id') // get one or specifice booking
         * app.post('/booking') // add new booking
         * app.patch('/booking/:id') // update booking
+        * app.put('/users') // thakle dhukabe na thakle notun kore add korbe 
         * app.delete('/booking') // delete one booking
         * ***************/
 
